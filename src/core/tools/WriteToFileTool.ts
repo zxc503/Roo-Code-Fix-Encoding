@@ -19,6 +19,7 @@ import { convertNewFileToUnifiedDiff, computeDiffStats, sanitizeUnifiedDiff } fr
 import { BaseTool, ToolCallbacks } from "./BaseTool"
 import type { ToolUse } from "../../shared/tools"
 import { resolveToolProtocol } from "../../utils/resolveToolProtocol"
+import { readFileWithEncodingDetection } from "../../utils/encoding"
 
 interface WriteToFileParams {
 	path: string
@@ -149,7 +150,7 @@ export class WriteToFileTool extends BaseTool<"write_to_file"> {
 				task.diffViewProvider.editType = fileExists ? "modify" : "create"
 				if (fileExists) {
 					const absolutePath = path.resolve(task.cwd, relPath)
-					task.diffViewProvider.originalContent = await fs.readFile(absolutePath, "utf-8")
+					task.diffViewProvider.originalContent = await readFileWithEncodingDetection(absolutePath)
 				} else {
 					task.diffViewProvider.originalContent = ""
 				}

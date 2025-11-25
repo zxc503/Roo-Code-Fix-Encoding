@@ -16,6 +16,7 @@ import { DEFAULT_WRITE_DELAY_MS, isNativeProtocol } from "@roo-code/types"
 import { resolveToolProtocol } from "../../utils/resolveToolProtocol"
 
 import { DecorationController } from "./DecorationController"
+import { readFileWithEncodingDetection } from "../../utils/encoding"
 
 export const DIFF_VIEW_URI_SCHEME = "cline-diff"
 export const DIFF_VIEW_LABEL_CHANGES = "Original ↔ Roo's Changes"
@@ -69,7 +70,7 @@ export class DiffViewProvider {
 		this.preDiagnostics = vscode.languages.getDiagnostics()
 
 		if (fileExists) {
-			this.originalContent = await fs.readFile(absolutePath, "utf-8")
+			this.originalContent = await readFileWithEncodingDetection(absolutePath)
 		} else {
 			this.originalContent = ""
 		}

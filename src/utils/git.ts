@@ -4,6 +4,7 @@ import { promises as fs } from "fs"
 import { exec } from "child_process"
 import { promisify } from "util"
 import { truncateOutput } from "../integrations/misc/extract-text"
+import { readFileWithEncodingDetection } from "./encoding"
 
 const execAsync = promisify(exec)
 const GIT_OUTPUT_LINE_LIMIT = 500
@@ -44,7 +45,7 @@ export async function getGitRepositoryInfo(workspaceRoot: string): Promise<GitRe
 		// Try to read git config file
 		try {
 			const configPath = path.join(gitDir, "config")
-			const configContent = await fs.readFile(configPath, "utf8")
+			const configContent = await readFileWithEncodingDetection(configPath)
 
 			// Very simple approach - just find any URL line
 			const urlMatch = configContent.match(/url\s*=\s*(.+?)(?:\r?\n|$)/m)
@@ -72,7 +73,7 @@ export async function getGitRepositoryInfo(workspaceRoot: string): Promise<GitRe
 		if (!gitInfo.defaultBranch) {
 			try {
 				const headPath = path.join(gitDir, "HEAD")
-				const headContent = await fs.readFile(headPath, "utf8")
+				const headContent = await readFileWithEncodingDetection(headPath)
 				const branchMatch = headContent.match(/ref: refs\/heads\/(.+)/)
 				if (branchMatch && branchMatch[1]) {
 					gitInfo.defaultBranch = branchMatch[1].trim()

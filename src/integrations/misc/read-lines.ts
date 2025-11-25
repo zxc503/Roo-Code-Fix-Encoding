@@ -7,6 +7,9 @@
  * Now you can read a range of lines from a file
  */
 import { createReadStream } from "fs"
+import { open } from "fs/promises"
+import * as iconv from "iconv-lite"
+import { detectEncoding } from "../../utils/encoding"
 
 const outOfRangeError = (filepath: string, n: number) => {
 	return new RangeError(`Line with index ${n} does not exist in '${filepath}'. Note that line indexing is zero-based`)
@@ -52,65 +55,89 @@ export function readLines(filepath: string, endLine?: number, startLine?: number
 			)
 		}
 
-		// Set up stream
-		const input = createReadStream(filepath)
-		let buffer = ""
-		let lineCount = 0
-		let result = ""
+		// Sample the first 64KB for encoding detection
+		open(filepath, "r")
+			.then((fileHandle) => {
+				const sampleBuffer = Buffer.alloc(65536)
+				return fileHandle
+					.read(sampleBuffer, 0, sampleBuffer.length, 0)
+					.then(() => sampleBuffer)
+					.finally(() => fileHandle.close())
+			})
+			.then((sampleBuffer) => detectEncoding(sampleBuffer))
+			.then((encoding) => {
+				// Node.js native supported encodings
+				const nodeEncodings = ["utf8", "ascii", "latin1"]
 
-		// Handle errors
-		input.on("error", reject)
-
-		// Process data chunks directly
-		input.on("data", (chunk) => {
-			// Add chunk to buffer
-			buffer += chunk.toString()
-
-			let pos = 0
-			let nextNewline = buffer.indexOf("\n", pos)
-
-			// Process complete lines in the buffer
-			while (nextNewline !== -1) {
-				// If we're in the target range, add this line to the result
-				if (lineCount >= effectiveStartLine && (endLine === undefined || lineCount <= endLine)) {
-					result += buffer.substring(pos, nextNewline + 1) // Include the newline
+				// Choose decoding method based on native support
+				let input: NodeJS.ReadableStream
+				if (nodeEncodings.includes(encoding.toLowerCase())) {
+					input = createReadStream(filepath, { encoding: encoding as BufferEncoding })
+				} else {
+					input = createReadStream(filepath).pipe(iconv.decodeStream(encoding))
 				}
 
-				// Move position and increment line counter
-				pos = nextNewline + 1
-				lineCount++
+				let buffer = ""
+				let lineCount = 0
+				let result = ""
 
-				// If we've reached the end line, we can stop
-				if (endLine !== undefined && lineCount > endLine) {
-					input.destroy()
-					resolve(result)
-					return
-				}
+				// Handle errors
+				input.on("error", reject)
 
-				// Find next newline
-				nextNewline = buffer.indexOf("\n", pos)
-			}
+				// Process data chunks directly
+				input.on("data", (chunk) => {
+					// Add chunk to buffer (chunk is already decoded using the detected encoding)
+					buffer += chunk
 
-			// Trim buffer - keep only the incomplete line
-			buffer = buffer.substring(pos)
-		})
+					let pos = 0
+					let nextNewline = buffer.indexOf("\n", pos)
 
-		// Handle end of file
-		input.on("end", () => {
-			// Process any remaining data in buffer (last line without newline)
-			if (buffer.length > 0) {
-				if (lineCount >= effectiveStartLine && (endLine === undefined || lineCount <= endLine)) {
-					result += buffer
-				}
-				lineCount++
-			}
+					// Process complete lines in the buffer
+					while (nextNewline !== -1) {
+						// If we're in the target range, add this line to the result
+						if (lineCount >= effectiveStartLine && (endLine === undefined || lineCount <= endLine)) {
+							result += buffer.substring(pos, nextNewline + 1) // Include the newline
+						}
 
-			// Check if we found any lines in the requested range
-			if (lineCount <= effectiveStartLine) {
-				reject(outOfRangeError(filepath, effectiveStartLine))
-			} else {
-				resolve(result)
-			}
-		})
+						// Move position and increment line counter
+						pos = nextNewline + 1
+						lineCount++
+
+						// If we've reached the end line, we can stop
+						if (endLine !== undefined && lineCount > endLine) {
+							;(input as any).destroy?.()
+							resolve(result)
+							return
+						}
+
+						// Find next newline
+						nextNewline = buffer.indexOf("\n", pos)
+					}
+
+					// Trim buffer - keep only the incomplete line
+					buffer = buffer.substring(pos)
+				})
+
+				// Handle end of file
+				input.on("end", () => {
+					// Process any remaining data in buffer (last line without newline)
+					if (buffer.length > 0) {
+						if (lineCount >= effectiveStartLine && (endLine === undefined || lineCount <= endLine)) {
+							result += buffer
+						}
+						lineCount++
+					}
+
+					// Check if we found any lines in the requested range
+					if (lineCount <= effectiveStartLine) {
+						reject(outOfRangeError(filepath, effectiveStartLine))
+					} else {
+						resolve(result)
+					}
+				})
+			})
+			.catch((error) => {
+				reject(error)
+			})
 	})
 }

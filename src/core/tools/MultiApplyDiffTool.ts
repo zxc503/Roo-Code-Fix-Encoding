@@ -18,6 +18,7 @@ import { applyDiffTool as applyDiffToolClass } from "./ApplyDiffTool"
 import { computeDiffStats, sanitizeUnifiedDiff } from "../diff/stats"
 import { isNativeProtocol } from "@roo-code/types"
 import { resolveToolProtocol } from "../../utils/resolveToolProtocol"
+import { readFileWithEncodingDetection } from "../../utils/encoding"
 
 interface DiffOperation {
 	path: string
@@ -477,7 +478,7 @@ Original error: ${errorMessage}`
 			const fileExists = opResult.fileExists!
 
 			try {
-				let originalContent: string | null = await fs.readFile(absolutePath, "utf-8")
+				let originalContent: string | null = await readFileWithEncodingDetection(absolutePath)
 				let beforeContent: string | null = originalContent
 				let successCount = 0
 				let formattedError = ""
@@ -631,7 +632,7 @@ ${errorDetails ? `\nTechnical details:\n${errorDetails}\n` : ""}
 						cline.diffViewProvider.scrollToFirstDiff()
 					} else {
 						// For direct save, we still need to set originalContent
-						cline.diffViewProvider.originalContent = await fs.readFile(absolutePath, "utf-8")
+						cline.diffViewProvider.originalContent = await readFileWithEncodingDetection(absolutePath)
 					}
 
 					// Ask for approval (same for both flows)
@@ -666,7 +667,7 @@ ${errorDetails ? `\nTechnical details:\n${errorDetails}\n` : ""}
 					if (isPreventFocusDisruptionEnabled) {
 						// Direct file write without diff view or opening the file
 						cline.diffViewProvider.editType = "modify"
-						cline.diffViewProvider.originalContent = await fs.readFile(absolutePath, "utf-8")
+						cline.diffViewProvider.originalContent = await readFileWithEncodingDetection(absolutePath)
 						await cline.diffViewProvider.saveDirectly(
 							relPath,
 							originalContent!,

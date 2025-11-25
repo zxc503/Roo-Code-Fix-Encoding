@@ -13,6 +13,7 @@ import { EXPERIMENT_IDS, experiments } from "../../shared/experiments"
 import { convertNewFileToUnifiedDiff, computeDiffStats, sanitizeUnifiedDiff } from "../diff/stats"
 import { BaseTool, ToolCallbacks } from "./BaseTool"
 import type { ToolUse } from "../../shared/tools"
+import { readFileWithEncodingDetection } from "../../utils/encoding"
 
 interface InsertContentParams {
 	path: string
@@ -89,7 +90,7 @@ export class InsertContentTool extends BaseTool<"insert_content"> {
 					return
 				}
 			} else {
-				fileContent = await fs.readFile(absolutePath, "utf8")
+				fileContent = await readFileWithEncodingDetection(absolutePath)
 			}
 
 			task.consecutiveMistakeCount = 0

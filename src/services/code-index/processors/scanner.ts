@@ -30,6 +30,8 @@ import { TelemetryService } from "@roo-code/telemetry"
 import { TelemetryEventName } from "@roo-code/types"
 import { sanitizeErrorMessage } from "../shared/validation-helpers"
 import { Package } from "../../../shared/package"
+import * as iconv from "iconv-lite"
+import { detectEncoding } from "../../../utils/encoding"
 
 export class DirectoryScanner implements IDirectoryScanner {
 	private readonly batchSegmentThreshold: number
@@ -135,9 +137,11 @@ export class DirectoryScanner implements IDirectoryScanner {
 					}
 
 					// Read file content
-					const content = await vscode.workspace.fs
-						.readFile(vscode.Uri.file(filePath))
-						.then((buffer) => Buffer.from(buffer).toString("utf-8"))
+					// Read file content with encoding detection
+					const fileBuffer = await vscode.workspace.fs.readFile(vscode.Uri.file(filePath))
+					const buffer = Buffer.from(fileBuffer)
+					const encoding = await detectEncoding(buffer)
+					const content = iconv.decode(buffer, encoding)
 
 					// Calculate current hash
 					const currentFileHash = createHash("sha256").update(content).digest("hex")
