@@ -1,5 +1,26 @@
 # Roo Code Changelog
 
+## [3.34.4] - 2025-11-25
+
+![3.34.4 Release - BFL Image Generation](/releases/3.34.4-release.png)
+
+- Add new Black Forest Labs image generation models, free on Roo Code Cloud and also available on OpenRouter (PR #9587 and #9589 by @mrubens)
+- Fix: Preserve dynamic MCP tool names in native mode API history to prevent tool name mismatches (PR #9559 by @daniel-lxs)
+- Fix: Preserve tool_use blocks in summary message during condensing with native tools to maintain conversation context (PR #9582 by @daniel-lxs)
+
+## [3.34.3] - 2025-11-25
+
+![3.34.3 Release - Streaming and Opus 4.5](/releases/3.34.3-release.png)
+
+- Implement streaming for native tool calls, providing real-time feedback during tool execution (PR #9542 by @daniel-lxs)
+- Add Claude Opus 4.5 model to Claude Code provider (PR #9560 by @mrubens)
+- Add Claude Opus 4.5 model to Bedrock provider (#9571 by @pisicode, PR #9572 by @roomote)
+- Enable caching for Opus 4.5 model to improve performance (#9567 by @iainRedro, PR #9568 by @roomote)
+- Add support for Roo Code Cloud as an embeddings provider (PR #9543 by @mrubens)
+- Fix ask_followup_question streaming issue and add missing tool cases (PR #9561 by @daniel-lxs)
+- Add contact links to About Roo Code settings page (PR #9570 by @roomote)
+- Switch from asdf to mise-en-place in bare-metal evals setup script (PR #9548 by @cte)
+
 ## [3.34.2] - 2025-11-24
 
 ![3.34.2 Release - Opus Conductor](/releases/3.34.2-release.png)

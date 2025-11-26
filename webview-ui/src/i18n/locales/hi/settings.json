@@ -35,6 +35,26 @@
 		"language": "भाषा",
 		"about": "परिचय"
 	},
+	"about": {
+		"bugReport": {
+			"label": "बग मिला?",
+			"link": "GitHub पर रिपोर्ट करें"
+		},
+		"featureRequest": {
+			"label": "कोई विचार है?",
+			"link": "हमारे साथ साझा करें"
+		},
+		"securityIssue": {
+			"label": "कोई कमजोरी खोजी?",
+			"link": "हमारी प्रकटीकरण प्रक्रिया का पालन करें"
+		},
+		"contact": {
+			"label": "हमसे बात करने की जरूरत है? लिखें"
+		},
+		"community": "सुझाव चाहिए या बस अन्य Roo Code उपयोगकर्ताओं के साथ घूमना चाहते हैं? <redditLink>reddit.com/r/RooCode</redditLink> या <discordLink>discord.gg/roocode</discordLink> में शामिल हों",
+		"contactAndCommunity": "संपर्क और समुदाय",
+		"manageSettings": "सेटिंग्स प्रबंधित करें"
+	},
 	"slashCommands": {
 		"description": "कस्टम वर्कफ़्लो और क्रियाओं को तेज़ी से निष्पादित करने के लिए अपने स्लैश कमांड प्रबंधित करें। <DocsLink>और जानें</DocsLink>"
 	},
@@ -790,6 +810,10 @@
 		"RUN_SLASH_COMMAND": {
 			"name": "मॉडल द्वारा शुरू किए गए स्लैश कमांड सक्षम करें",
 			"description": "जब सक्षम होता है, Roo वर्कफ़्लो चलाने के लिए आपके स्लैश कमांड चला सकता है।"
+		},
+		"MULTIPLE_NATIVE_TOOL_CALLS": {
+			"name": "समानांतर टूल कॉल",
+			"description": "सक्षम होने पर, नेटिव प्रोटोकॉल एकल सहायक संदेश टर्न में एकाधिक टूल निष्पादित कर सकता है।"
 		}
 	},
 	"promptCaching": {

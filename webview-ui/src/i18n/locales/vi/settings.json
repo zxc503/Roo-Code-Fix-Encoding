@@ -35,6 +35,26 @@
 		"language": "Ngôn ngữ",
 		"about": "Giới thiệu"
 	},
+	"about": {
+		"bugReport": {
+			"label": "Tìm thấy lỗi?",
+			"link": "Báo cáo trên GitHub"
+		},
+		"featureRequest": {
+			"label": "Có ý tưởng?",
+			"link": "Chia sẻ với chúng tôi"
+		},
+		"securityIssue": {
+			"label": "Phát hiện lỗ hổng bảo mật?",
+			"link": "Làm theo quy trình công bố của chúng tôi"
+		},
+		"contact": {
+			"label": "Cần nói chuyện với chúng tôi? Viết"
+		},
+		"community": "Muốn nhận mẹo hoặc chỉ muốn giao lưu với những người dùng Roo Code khác? Tham gia <redditLink>reddit.com/r/RooCode</redditLink> hoặc <discordLink>discord.gg/roocode</discordLink>",
+		"contactAndCommunity": "Liên Hệ & Cộng Đồng",
+		"manageSettings": "Quản Lý Cài Đặt"
+	},
 	"slashCommands": {
 		"description": "Quản lý các lệnh slash của bạn để thực thi nhanh các quy trình công việc và hành động tùy chỉnh. <DocsLink>Tìm hiểu thêm</DocsLink>"
 	},
@@ -790,6 +810,10 @@
 		"RUN_SLASH_COMMAND": {
 			"name": "Bật lệnh slash do mô hình khởi tạo",
 			"description": "Khi được bật, Roo có thể chạy các lệnh slash của bạn để thực hiện các quy trình làm việc."
+		},
+		"MULTIPLE_NATIVE_TOOL_CALLS": {
+			"name": "Lệnh gọi công cụ song song",
+			"description": "Khi được bật, giao thức native có thể thực thi nhiều công cụ trong một lượt tin nhắn của trợ lý."
 		}
 	},
 	"promptCaching": {
