@@ -1,6 +1,7 @@
 import * as vscode from "vscode"
 import * as path from "path"
 import * as fs from "fs/promises"
+import * as iconv from "iconv-lite"
 import * as diff from "diff"
 import stripBom from "strip-bom"
 import { XMLBuilder } from "fast-xml-parser"
@@ -17,6 +18,7 @@ import { resolveToolProtocol } from "../../utils/resolveToolProtocol"
 
 import { DecorationController } from "./DecorationController"
 import { readFileWithEncodingDetection } from "../../utils/encoding"
+import { detectEncoding } from "../../utils/encoding"
 
 export const DIFF_VIEW_URI_SCHEME = "cline-diff"
 export const DIFF_VIEW_LABEL_CHANGES = "Original ↔ Roo's Changes"
@@ -693,7 +695,29 @@ export class DiffViewProvider {
 
 		// Write the content directly to the file
 		await createDirectoriesForFile(absolutePath)
-		await fs.writeFile(absolutePath, content, "utf-8")
+
+		// Default encoding remains "utf-8"
+		let encodingToUse = "utf-8"
+
+		try {
+			// Try to read the existing file, will throw exception if file doesn't exist or read fails
+			const buffer = await fs.readFile(absolutePath)
+			// Use file extension to assist detection
+			const fileExtension = path.extname(absolutePath).toLowerCase()
+			// Use encoding tool to automatically detect encoding
+			const detectedEncoding = await detectEncoding(buffer, fileExtension)
+
+			// If detectEncoding returns normally, use the detected encoding
+			encodingToUse = detectedEncoding
+		} catch {
+			// When file doesn't exist or detection fails, keep encodingToUse = "utf-8"
+			// No processing needed to satisfy: fallback to utf-8 on failure/non-existence
+		}
+
+		// Use iconv-lite to encode content to Buffer with corresponding encoding, then write to file
+		// This supports encodings like GB2312/GBK that Node doesn't directly support
+		const outputBuffer = iconv.encode(content, encodingToUse)
+		await fs.writeFile(absolutePath, outputBuffer)
 
 		// Open the document to ensure diagnostics are loaded
 		// When openFile is false (PREVENT_FOCUS_DISRUPTION enabled), we only open in memory
