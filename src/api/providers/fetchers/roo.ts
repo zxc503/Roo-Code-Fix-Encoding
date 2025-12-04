@@ -1,9 +1,19 @@
-import { RooModelsResponseSchema } from "@roo-code/types"
+import { RooModelsResponseSchema, type ModelInfo } from "@roo-code/types"
 
 import type { ModelRecord } from "../../../shared/api"
 import { parseApiPrice } from "../../../shared/cost"
 
 import { DEFAULT_HEADERS } from "../constants"
+
+// Model-specific defaults that should be applied even when models come from API cache
+// These override API-provided values for specific models
+// Exported so RooHandler.getModel() can also apply these for fallback cases
+export const MODEL_DEFAULTS: Record<string, Partial<ModelInfo>> = {
+	"minimax/minimax-m2:free": {
+		includedTools: ["search_and_replace"],
+		excludedTools: ["apply_diff"],
+	},
+}
 
 /**
  * Fetches available models from the Roo Code Cloud provider
@@ -95,6 +105,9 @@ export async function getRooModels(baseUrl: string, apiKey?: string): Promise<Mo
 				// Determine if the model supports native tool calling based on tags
 				const supportsNativeTools = tags.includes("tool-use")
 
+				// Determine if the model should hide vendor/company identity (stealth mode)
+				const isStealthModel = tags.includes("stealth")
+
 				// Parse pricing (API returns strings, convert to numbers)
 				const inputPrice = parseApiPrice(pricing.input)
 				const outputPrice = parseApiPrice(pricing.output)
@@ -117,9 +130,14 @@ export async function getRooModels(baseUrl: string, apiKey?: string): Promise<Mo
 					description: model.description || model.name,
 					deprecated: model.deprecated || false,
 					isFree: tags.includes("free"),
+					defaultTemperature: model.default_temperature,
+					defaultToolProtocol: "native" as const,
+					isStealthModel: isStealthModel || undefined,
 				}
 
-				models[modelId] = baseModelInfo
+				// Apply model-specific defaults (e.g., defaultToolProtocol)
+				const modelDefaults = MODEL_DEFAULTS[modelId]
+				models[modelId] = modelDefaults ? { ...baseModelInfo, ...modelDefaults } : baseModelInfo
 			}
 
 			return models

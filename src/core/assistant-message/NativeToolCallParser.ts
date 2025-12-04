@@ -287,6 +287,45 @@ export class NativeToolCallParser {
 	}
 
 	/**
+	 * Convert raw file entries from API (with line_ranges) to FileEntry objects
+	 * (with lineRanges). Handles multiple formats for compatibility:
+	 *
+	 * New tuple format: { path: string, line_ranges: [[1, 50], [100, 150]] }
+	 * Object format: { path: string, line_ranges: [{ start: 1, end: 50 }] }
+	 * Legacy string format: { path: string, line_ranges: ["1-50"] }
+	 *
+	 * Returns: { path: string, lineRanges: [{ start: 1, end: 50 }] }
+	 */
+	private static convertFileEntries(files: any[]): FileEntry[] {
+		return files.map((file: any) => {
+			const entry: FileEntry = { path: file.path }
+			if (file.line_ranges && Array.isArray(file.line_ranges)) {
+				entry.lineRanges = file.line_ranges
+					.map((range: any) => {
+						// Handle tuple format: [start, end]
+						if (Array.isArray(range) && range.length >= 2) {
+							return { start: Number(range[0]), end: Number(range[1]) }
+						}
+						// Handle object format: { start: number, end: number }
+						if (typeof range === "object" && range !== null && "start" in range && "end" in range) {
+							return { start: Number(range.start), end: Number(range.end) }
+						}
+						// Handle legacy string format: "1-50"
+						if (typeof range === "string") {
+							const match = range.match(/^(\d+)-(\d+)$/)
+							if (match) {
+								return { start: parseInt(match[1], 10), end: parseInt(match[2], 10) }
+							}
+						}
+						return null
+					})
+					.filter(Boolean)
+			}
+			return entry
+		})
+	}
+
+	/**
 	 * Create a partial ToolUse from currently parsed arguments.
 	 * Used during streaming to show progress.
 	 */
@@ -313,7 +352,7 @@ export class NativeToolCallParser {
 		switch (name) {
 			case "read_file":
 				if (partialArgs.files && Array.isArray(partialArgs.files)) {
-					nativeArgs = { files: partialArgs.files }
+					nativeArgs = { files: this.convertFileEntries(partialArgs.files) }
 				}
 				break
 
@@ -332,39 +371,11 @@ export class NativeToolCallParser {
 				}
 				break
 
-			case "insert_content":
-				// For partial tool calls, we build nativeArgs incrementally as fields arrive.
-				// Unlike parseToolCall which validates all required fields, partial parsing
-				// needs to show progress as each field streams in.
-				if (
-					partialArgs.path !== undefined ||
-					partialArgs.line !== undefined ||
-					partialArgs.content !== undefined
-				) {
-					nativeArgs = {
-						path: partialArgs.path,
-						line:
-							typeof partialArgs.line === "number"
-								? partialArgs.line
-								: partialArgs.line !== undefined
-									? parseInt(String(partialArgs.line), 10)
-									: undefined,
-						content: partialArgs.content,
-					}
-				}
-				break
-
 			case "write_to_file":
-				if (partialArgs.path || partialArgs.content || partialArgs.line_count !== undefined) {
+				if (partialArgs.path || partialArgs.content) {
 					nativeArgs = {
 						path: partialArgs.path,
 						content: partialArgs.content,
-						line_count:
-							typeof partialArgs.line_count === "number"
-								? partialArgs.line_count
-								: partialArgs.line_count
-									? parseInt(String(partialArgs.line_count), 10)
-									: undefined,
 					}
 				}
 				break
@@ -480,6 +491,14 @@ export class NativeToolCallParser {
 				}
 				break
 
+			case "apply_patch":
+				if (partialArgs.patch !== undefined) {
+					nativeArgs = {
+						patch: partialArgs.patch,
+					}
+				}
+				break
+
 			// Add other tools as needed
 			default:
 				break
@@ -558,7 +577,7 @@ export class NativeToolCallParser {
 			switch (toolCall.name) {
 				case "read_file":
 					if (args.files && Array.isArray(args.files)) {
-						nativeArgs = { files: args.files } as NativeArgsFor<TName>
+						nativeArgs = { files: this.convertFileEntries(args.files) } as NativeArgsFor<TName>
 					}
 					break
 
@@ -577,21 +596,20 @@ export class NativeToolCallParser {
 					}
 					break
 
-				case "insert_content":
-					if (args.path !== undefined && args.line !== undefined && args.content !== undefined) {
-						nativeArgs = {
-							path: args.path,
-							line: typeof args.line === "number" ? args.line : parseInt(String(args.line), 10),
-							content: args.content,
-						} as NativeArgsFor<TName>
-					}
-					break
-
 				case "apply_diff":
 					if (args.path !== undefined && args.diff !== undefined) {
 						nativeArgs = {
 							path: args.path,
 							diff: args.diff,
+						} as NativeArgsFor<TName>
+					}
+					break
+
+				case "search_and_replace":
+					if (args.path !== undefined && args.operations !== undefined && Array.isArray(args.operations)) {
+						nativeArgs = {
+							path: args.path,
+							operations: args.operations,
 						} as NativeArgsFor<TName>
 					}
 					break
@@ -689,14 +707,10 @@ export class NativeToolCallParser {
 					break
 
 				case "write_to_file":
-					if (args.path !== undefined && args.content !== undefined && args.line_count !== undefined) {
+					if (args.path !== undefined && args.content !== undefined) {
 						nativeArgs = {
 							path: args.path,
 							content: args.content,
-							line_count:
-								typeof args.line_count === "number"
-									? args.line_count
-									: parseInt(String(args.line_count), 10),
 						} as NativeArgsFor<TName>
 					}
 					break
@@ -716,6 +730,14 @@ export class NativeToolCallParser {
 						nativeArgs = {
 							server_name: args.server_name,
 							uri: args.uri,
+						} as NativeArgsFor<TName>
+					}
+					break
+
+				case "apply_patch":
+					if (args.patch !== undefined) {
+						nativeArgs = {
+							patch: args.patch,
 						} as NativeArgsFor<TName>
 					}
 					break

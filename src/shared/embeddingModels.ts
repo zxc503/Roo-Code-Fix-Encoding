@@ -9,8 +9,8 @@ export type EmbedderProvider =
 	| "gemini"
 	| "mistral"
 	| "vercel-ai-gateway"
-	| "openrouter"
-	| "roo" // Add other providers as needed
+	| "bedrock"
+	| "openrouter" // Add other providers as needed
 
 export interface EmbeddingModelProfile {
 	dimension: number
@@ -78,6 +78,17 @@ export const EMBEDDING_MODEL_PROFILES: EmbeddingModelProfiles = {
 		"mistral/codestral-embed": { dimension: 1536, scoreThreshold: 0.4 },
 		"mistral/mistral-embed": { dimension: 1024, scoreThreshold: 0.4 },
 	},
+	bedrock: {
+		// Amazon Titan Embed models
+		"amazon.titan-embed-text-v1": { dimension: 1536, scoreThreshold: 0.4 },
+		"amazon.titan-embed-text-v2:0": { dimension: 1024, scoreThreshold: 0.4 },
+		"amazon.titan-embed-image-v1": { dimension: 1024, scoreThreshold: 0.4 },
+		// Amazon Nova Embed models
+		"amazon.nova-2-multimodal-embeddings-v1:0": { dimension: 1024, scoreThreshold: 0.4 },
+		// Cohere models available through Bedrock
+		"cohere.embed-english-v3": { dimension: 1024, scoreThreshold: 0.4 },
+		"cohere.embed-multilingual-v3": { dimension: 1024, scoreThreshold: 0.4 },
+	},
 	openrouter: {
 		// OpenAI models via OpenRouter
 		"openai/text-embedding-3-small": { dimension: 1536, scoreThreshold: 0.4 },
@@ -92,23 +103,6 @@ export const EMBEDDING_MODEL_PROFILES: EmbeddingModelProfiles = {
 		"qwen/qwen3-embedding-0.6b": { dimension: 1024, scoreThreshold: 0.4 },
 		"qwen/qwen3-embedding-4b": { dimension: 2560, scoreThreshold: 0.4 },
 		"qwen/qwen3-embedding-8b": { dimension: 4096, scoreThreshold: 0.4 },
-	},
-	roo: {
-		// OpenAI models via Roo Code Cloud
-		"openai/text-embedding-3-small": { dimension: 1536, scoreThreshold: 0.4 },
-		"openai/text-embedding-3-large": { dimension: 3072, scoreThreshold: 0.4 },
-		"openai/text-embedding-ada-002": { dimension: 1536, scoreThreshold: 0.4 },
-		// Cohere models via Roo Code Cloud
-		"cohere/embed-v4.0": { dimension: 1024, scoreThreshold: 0.4 },
-		// Google models via Roo Code Cloud
-		"google/gemini-embedding-001": { dimension: 3072, scoreThreshold: 0.4 },
-		"google/text-embedding-005": { dimension: 768, scoreThreshold: 0.4 },
-		"google/text-multilingual-embedding-002": { dimension: 768, scoreThreshold: 0.4 },
-		// Amazon models via Roo Code Cloud
-		"amazon/titan-embed-text-v2": { dimension: 1024, scoreThreshold: 0.4 },
-		// Mistral models via Roo Code Cloud
-		"mistral/codestral-embed": { dimension: 1536, scoreThreshold: 0.4 },
-		"mistral/mistral-embed": { dimension: 1024, scoreThreshold: 0.4 },
 	},
 }
 
@@ -203,10 +197,9 @@ export function getDefaultModelId(provider: EmbedderProvider): string {
 		case "vercel-ai-gateway":
 			return "openai/text-embedding-3-large"
 
+		case "bedrock":
+			return "amazon.titan-embed-text-v2:0"
 		case "openrouter":
-			return "openai/text-embedding-3-large"
-
-		case "roo":
 			return "openai/text-embedding-3-large"
 
 		default:

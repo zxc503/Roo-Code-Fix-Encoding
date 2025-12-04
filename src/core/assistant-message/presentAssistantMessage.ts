@@ -16,7 +16,8 @@ import { getSimpleReadFileToolDescription, simpleReadFileTool } from "../tools/s
 import { shouldUseSingleFileRead, TOOL_PROTOCOL } from "@roo-code/types"
 import { writeToFileTool } from "../tools/WriteToFileTool"
 import { applyDiffTool } from "../tools/MultiApplyDiffTool"
-import { insertContentTool } from "../tools/InsertContentTool"
+import { searchAndReplaceTool } from "../tools/SearchAndReplaceTool"
+import { applyPatchTool } from "../tools/ApplyPatchTool"
 import { listCodeDefinitionNamesTool } from "../tools/ListCodeDefinitionNamesTool"
 import { searchFilesTool } from "../tools/SearchFilesTool"
 import { browserActionTool } from "../tools/BrowserActionTool"
@@ -377,8 +378,10 @@ export async function presentAssistantMessage(cline: Task) {
 						return `[${block.name} for '${block.params.regex}'${
 							block.params.file_pattern ? ` in '${block.params.file_pattern}'` : ""
 						}]`
-					case "insert_content":
+					case "search_and_replace":
 						return `[${block.name} for '${block.params.path}']`
+					case "apply_patch":
+						return `[${block.name}]`
 					case "list_files":
 						return `[${block.name} for '${block.params.path}']`
 					case "list_code_definition_names":
@@ -475,13 +478,9 @@ export async function presentAssistantMessage(cline: Task) {
 			const toolCallId = (block as any).id
 			const toolProtocol = toolCallId ? TOOL_PROTOCOL.NATIVE : TOOL_PROTOCOL.XML
 
-			// Check experimental setting for multiple native tool calls
-			const provider = cline.providerRef.deref()
-			const state = await provider?.getState()
-			const isMultipleNativeToolCallsEnabled = experiments.isEnabled(
-				state?.experiments ?? {},
-				EXPERIMENT_IDS.MULTIPLE_NATIVE_TOOL_CALLS,
-			)
+			// Multiple native tool calls feature is on hold - always disabled
+			// Previously resolved from experiments.isEnabled(..., EXPERIMENT_IDS.MULTIPLE_NATIVE_TOOL_CALLS)
+			const isMultipleNativeToolCallsEnabled = false
 
 			const pushToolResult = (content: ToolResponse) => {
 				if (toolProtocol === TOOL_PROTOCOL.NATIVE) {
@@ -677,7 +676,14 @@ export async function presentAssistantMessage(cline: Task) {
 			}
 
 			// Validate tool use before execution.
-			const { mode, customModes } = (await cline.providerRef.deref()?.getState()) ?? {}
+			const {
+				mode,
+				customModes,
+				experiments: stateExperiments,
+				apiConfiguration,
+			} = (await cline.providerRef.deref()?.getState()) ?? {}
+			const modelInfo = cline.api.getModel()
+			const includedTools = modelInfo?.info?.includedTools
 
 			try {
 				validateToolUse(
@@ -686,6 +692,8 @@ export async function presentAssistantMessage(cline: Task) {
 					customModes ?? [],
 					{ apply_diff: cline.diffEnabled },
 					block.params,
+					stateExperiments,
+					includedTools,
 				)
 			} catch (error) {
 				cline.consecutiveMistakeCount++
@@ -796,9 +804,19 @@ export async function presentAssistantMessage(cline: Task) {
 					}
 					break
 				}
-				case "insert_content":
+				case "search_and_replace":
 					await checkpointSaveAndMark(cline)
-					await insertContentTool.handle(cline, block as ToolUse<"insert_content">, {
+					await searchAndReplaceTool.handle(cline, block as ToolUse<"search_and_replace">, {
+						askApproval,
+						handleError,
+						pushToolResult,
+						removeClosingTag,
+						toolProtocol,
+					})
+					break
+				case "apply_patch":
+					await checkpointSaveAndMark(cline)
+					await applyPatchTool.handle(cline, block as ToolUse<"apply_patch">, {
 						askApproval,
 						handleError,
 						pushToolResult,
@@ -808,8 +826,9 @@ export async function presentAssistantMessage(cline: Task) {
 					break
 				case "read_file":
 					// Check if this model should use the simplified single-file read tool
+					// Only use simplified tool for XML protocol - native protocol works with standard tool
 					const modelId = cline.api.getModel().id
-					if (shouldUseSingleFileRead(modelId)) {
+					if (shouldUseSingleFileRead(modelId) && toolProtocol !== TOOL_PROTOCOL.NATIVE) {
 						await simpleReadFileTool(
 							cline,
 							block,
@@ -937,6 +956,7 @@ export async function presentAssistantMessage(cline: Task) {
 						pushToolResult,
 						removeClosingTag,
 						toolProtocol,
+						toolCallId: block.id,
 					})
 					break
 				case "attempt_completion": {
