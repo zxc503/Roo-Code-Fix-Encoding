@@ -15,6 +15,7 @@ import { BaseTool, ToolCallbacks } from "./BaseTool"
 import type { ToolUse } from "../../shared/tools"
 import { parsePatch, ParseError, processAllHunks } from "./apply-patch"
 import type { ApplyPatchFileChange } from "./apply-patch"
+import { readFileWithEncodingDetection } from "../../utils/encoding"
 
 interface ApplyPatchParams {
 	patch: string
@@ -65,7 +66,7 @@ export class ApplyPatchTool extends BaseTool<"apply_patch"> {
 			// Process each hunk
 			const readFile = async (filePath: string): Promise<string> => {
 				const absolutePath = path.resolve(task.cwd, filePath)
-				return await fs.readFile(absolutePath, "utf8")
+				return await readFileWithEncodingDetection(absolutePath)
 			}
 
 			let changes: ApplyPatchFileChange[]
@@ -396,7 +397,7 @@ export class ApplyPatchTool extends BaseTool<"apply_patch"> {
 				// Write to new path and delete old file
 				const parentDir = path.dirname(moveAbsolutePath)
 				await fs.mkdir(parentDir, { recursive: true })
-				await fs.writeFile(moveAbsolutePath, newContent, "utf8")
+				await fs.writeFile(moveAbsolutePath, newContent)
 			}
 
 			// Delete the original file
