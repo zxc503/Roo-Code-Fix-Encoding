@@ -13,7 +13,7 @@ import path from "path"
 export async function detectEncoding(fileBuffer: Buffer, fileExtension?: string): Promise<string> {
 	// 1. First check if it's a binary file
 	if (fileExtension) {
-		const isBinary = await isBinaryFile(fileBuffer).catch(() => false)
+		const isBinary = false
 		if (isBinary) {
 			throw new Error(`Cannot read text for file type: ${fileExtension}`)
 		}

@@ -28,6 +28,7 @@ import { validateFileTokenBudget, truncateFileContent } from "./helpers/fileToke
 import { truncateDefinitionsToLineLimit } from "./helpers/truncateDefinitions"
 import { BaseTool, ToolCallbacks } from "./BaseTool"
 import type { ToolUse } from "../../shared/tools"
+import { fallbackExtensions } from "../../services/code-index/shared/supported-extensions"
 
 interface FileResult {
 	path: string
@@ -336,8 +337,7 @@ export class ReadFileTool extends BaseTool<"read_file"> {
 				const fullPath = path.resolve(task.cwd, relPath)
 
 				try {
-					const [totalLines, isBinary] = await Promise.all([countFileLines(fullPath), isBinaryFile(fullPath)])
-
+					const [totalLines, isBinary] = await Promise.all([countFileLines(fullPath), false])
 					if (isBinary) {
 						const fileExtension = path.extname(relPath).toLowerCase()
 						const supportedBinaryFormats = getSupportedBinaryFormats()
